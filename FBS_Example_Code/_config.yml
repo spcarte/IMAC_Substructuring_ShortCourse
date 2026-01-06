@@ -2,7 +2,7 @@ title: 'FBS Examples'
 author: 'Steven Carter'
 copyright: '2025'
 execute:
-  execute_notebooks: auto
+  execute_notebooks: force
   timeout: 600
 sphinx:
   extra_extensions:
