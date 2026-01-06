@@ -12,7 +12,8 @@ While these examples leverage FBS for the substructure coupling, many of the les
 Each example was built off an accompanying Jupyter notebook. The code and data in all these notebooks are self-contained (where the data is imported from the root directory of the file structure), so the code can be independently ran and modified. Note that some of the narrative content will build in a logical flow from one chapter to another. 
 
 The package dependencies for running the code in the notebooks includes:
-- Python3 
+- Python3
+- Jupyter Lab or Jupyter Notebook
 - NumPy
 - SciPy
 - Matplotlib
