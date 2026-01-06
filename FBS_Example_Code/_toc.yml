@@ -1,0 +1,18 @@
+format: jb-book
+root: FBS_example_introduction
+chapters:
+- file: FBS_example_generation
+  sections:
+  - file: generate_2DOF_example_system
+  - file: generate_beam_example_system
+- file: fundamental_FBS_examples
+  sections:
+  - file: manual_FBS
+  - file: bespoke_LM-FBS_function
+  - file: sdynpy_LM-FBS_function
+- file: common_fbs_problems
+  sections:
+  - file: FBS_FRF_noise
+  - file: FBS_inconsistent_FRFs
+  - file: FBS_coupling_dof_errors
+  - file: FBS_coupling_no_rotations

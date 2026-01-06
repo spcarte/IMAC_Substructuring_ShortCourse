@@ -1,0 +1,5 @@
+numpy
+sdynpy>=0.21.0
+scipy
+matplotlib
+jupyter-book

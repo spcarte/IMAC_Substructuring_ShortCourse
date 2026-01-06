@@ -1,0 +1,11 @@
+title: 'FBS Examples'
+author: 'Steven Carter'
+copyright: '2025'
+execute:
+  execute_notebooks: auto
+  timeout: 600
+sphinx:
+  extra_extensions:
+  - sphinx_jupyterbook_latex
+  config:
+    project: "FBS Examples"

@@ -1,0 +1,60 @@
+name: deploy-fbs-book
+
+# Run this when the main branch changes
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Optional but recommended so only one deploy runs at once
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+# This job installs dependencies, builds the book, and pushes it to `gh-pages`
+jobs:
+  deploy-book:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - uses: actions/checkout@v5
+
+      # Install dependencies
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r fbs_example_requirements.txt
+      
+      - name: Debug jupyter-book installation
+        run: |
+          which jupyter-book || echo "no jupyter-book script on PATH"
+          python -m pip show jupyter-book || echo "jupyter-book not installed?"
+          
+      # Build the book
+      - name: Build the book
+        run: jupyter-book build FBS_Example_Code
+      
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      # Upload the book's HTML as an artifact
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: FBS_Example_Code/_build/html
+
+      # Deploy the book's HTML to GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
