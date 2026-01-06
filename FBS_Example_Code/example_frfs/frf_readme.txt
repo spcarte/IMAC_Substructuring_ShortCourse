@@ -1,0 +1,1 @@
+The FRF data is not stored in the directory, due to file size limitations. Generate this data by running the "generate_2DOF_example_system.ipynb" and "generate_beam_example_system.ipynb" notebooks.
