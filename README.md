@@ -1,5 +1,8 @@
 # IMAC XLIV Substructuring ShortCourse
-This respository contains the course content and sample code for the IMAC XLIV substructuring shortcourse.
+This respository contains the course content and sample code for the IMAC XLIV substructuring shortcourse. The files are organized as:
+
+- The __FBS_Example_Book__ folder contains the FBS examples. The Jupyter notebooks (the .ipynb files) are the example scripts. Alternatively, the FBS examples can be reviewed [here](https://spcarte.github.io/IMAC_Substructuring_ShortCourse/).
+- ...
 
 ## Additional Helpful Information
 The examples in the [SDynPy](https://sandialabs.github.io/sdynpy/examples.html) and [pyFBS](https://pyfbs.readthedocs.io/en/master/theory/theory.html) documentation may provide additional helpful information on dynamic substructuring. While these examples show how to use the different Python packages, they also provide a significant amount of theoretical content for substructuring, the virtual point transformation, and transfer path analysis.
