@@ -36,10 +36,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r fbs_example_requirements.txt
       
-      - name: Debug jupyter-book installation
+      - name: Generate data
         run: |
-          which jupyter-book || echo "no jupyter-book script on PATH"
-          python -m pip show jupyter-book || echo "jupyter-book not installed?"
+          jupyter nbconvert --to notebook --execute generate_2DOF_example_system.ipynb --inplace
+          jupyter nbconvert --to notebook --execute generate_beam_example_system.ipynb --inplace
           
       # Build the book
       - name: Build the book
