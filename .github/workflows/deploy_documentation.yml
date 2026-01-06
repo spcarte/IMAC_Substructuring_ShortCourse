@@ -38,8 +38,8 @@ jobs:
       
       - name: Generate data
         run: |
-          jupyter nbconvert --to notebook --execute generate_2DOF_example_system.ipynb --inplace
-          jupyter nbconvert --to notebook --execute generate_beam_example_system.ipynb --inplace
+          jupyter nbconvert --to notebook --execute FBS_Example_Code/generate_2DOF_example_system.ipynb --inplace
+          jupyter nbconvert --to notebook --execute FBS_Example_Code/generate_beam_example_system.ipynb --inplace
           
       # Build the book
       - name: Build the book
