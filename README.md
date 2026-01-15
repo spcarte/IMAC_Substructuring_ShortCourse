@@ -2,7 +2,8 @@
 This respository contains the course content and sample code for the IMAC XLIV substructuring shortcourse. The files are organized as:
 
 - The __FBS_Example_Code__ folder contains the FBS examples. The Jupyter notebooks (the .ipynb files) are the example scripts. Alternatively, the FBS examples can also be reviewed [on the web here](https://spcarte.github.io/IMAC_Substructuring_ShortCourse/).
-- ...
+- The __Course Notes__ folder contains the PowerPoint files for the lectures that were given in the course.
+- The __Example_Scripts__ folder contains some example code for the different modules in the course. 
 
 Note that the contents of the .github folder, readme.md file, and fbs_example_requirements.txt file are primarily included to format the repository and deploy the FBS example webpage. These files are not required for any section of the course.
 
