@@ -10,16 +10,16 @@ ss(3)=SS3_PlateThickWing;
 ss(4)=SS4_FramePlateThickWing;
 
 % % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-% % Pick subassembly modes manually,  20 14 12 with pinv
-ss(1).Modes = [1:20]; % Frame + Plate + Thin Wing
-ss(2).Modes = [1:14]; % Plate + Thin Wing
-ss(3).Modes = [1:12]; % Plate + Thick Wing
+% % Either - Pick subassembly modes manually,  
+ss(1).Modes = [1:11]; % Frame + Plate + Thin Wing
+ss(2).Modes = [1:10]; % Plate + Thin Wing
+ss(3).Modes = [1:8]; % Plate + Thick Wing
 f_num = 100; % Figure Number to plot to
 
-% % % Pick modes based on Frequency range
-% ss(1).Modes = find(1000 > SS1_FramePlateThinWing.wn/2/pi); % Frame + Plate + ThinWing
-% ss(2).Modes = find(1000 > SS2_PlateThinWing.wn/2/pi); % Plate + ThinWing
-% ss(3).Modes = find(1000 > SS3_PlateThickWing.wn/2/pi); % Plate + ThickWing
+% % % Or - Pick modes based on Frequency range
+% ss(1).Modes = find(300 > SS1_FramePlateThinWing.wn/2/pi); % Frame + Plate + ThinWing
+% ss(2).Modes = find(300 > SS2_PlateThinWing.wn/2/pi); % Plate + ThinWing
+% ss(3).Modes = find(300 > SS3_PlateThickWing.wn/2/pi); % Plate + ThickWing
 % f_num = 200; % Figure Number to plot to
 % % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -32,21 +32,23 @@ ss(3).phi=ss(3).phi(:,ss(3).Modes); ss(3).wn=ss(3).wn(ss(3).Modes); ss(3).zt=ss(
 % % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % By default, constraints are only defined at the DOF on the plate in the
 % overlap region of the assembly. This ends up making the problem somewhat
-% challenging. However,since the thin and thick wings have DOF that are
+% challenging. However, since the thin and thick wings have DOF that are
 % located at physically the same positions, we can expand the constraints
-% to also include those. We can do that by just simply replacing the names.
-% ss(3).names=ss(2).names; % Uncomment to apply constraints on wings
+% to also include those. We can do that easily by just replacing the names.
+%
+% ss(3).names = ss(2).names; % Uncomment to apply constraints on wings
 % % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
 % % % % % % Constraint Equations % % % % % % 
+% % % Should not need to be changed % % %
 
-% Determine Overlapping Nodes
+% Determine Overlapping Nodes based on DOF label
 [con21,ConnThinWing,ConnFrame] = intersect(ss(2).names,ss(1).names);
 [con23,ConnThinWing2,ConnThickWing] = intersect(ss(2).names,ss(3).names);
 
-% Generate Signed Boolean Matrix  
+% Generate Signed Boolean Matrix of Constraint Equations
 B = zeros(length(con21)+length(con23),length(ss(1).names)+length(ss(2).names)+length(ss(3).names));
 for ii = 1:length(con21)
     B(ii, ConnFrame(ii)) = 1;
@@ -73,36 +75,47 @@ end
 % MAC_compare(ss(2).phi(ConnThinWing2,:),ss(3).phi(ConnThickWing,:),2,1000); % Thin to Thick Cross MAC
 
 
-% % Using mode shapes of SS2 for the constraint softening
+
+% % % Using mode shapes of SS2 for the constraint softening
 phip = blkdiag(pinv(ss(2).phi(ConnThinWing,:)),pinv(ss(2).phi(ConnThinWing2,:)));
 
 
-% % SVD of SS1 & SS2 for decoupling, and SS2 & SS3 for coupling
-% [a11,a12,a13]=svd([ss(1).phi(ConnFrame,:) ss(2).phi(ConnThinWing,:)]);
-% svd_val1 = (diag(a12)./max(a12(:)))*100; inds1=svd_val1>30; %10 - percentage of values
-% [a21,a22,a23]=svd([ss(2).phi(ConnThinWing2,:) ss(3).phi(ConnThickWing,:)]);
-% svd_val2 = (diag(a22)./max(a22(:)))*100; inds2=svd_val2>30; %18
-% phip = blkdiag(a11(:,inds1).' , a21(:,inds2).');
-% 
-% % Looking at the reconstructed mode shapes from the truncated singular vectors
-% % SS1 and SS2
-% shps_recon1 = a11(:,inds1)*a12(inds1,inds1)*a13(:,inds1)';
-% plot(diag(MAC_compare([ss(1).phi(ConnFrame,:) ss(2).phi(ConnThinWing,:)],shps_recon1)),'.'); xline(size(ss(1).phi,2)+.5);
-% MAC_compare([ss(1).phi(ConnFrame,:) ss(2).phi(ConnThinWing,:)],shps_recon1,3,1000);
-% MAC_compare(ss(1).phi(ConnFrame,:),ss(1).phi(ConnFrame,:),3,1000);
-% MAC_compare(ss(1).phi(ConnFrame,:),shps_recon1(:,1:size(ss(1).phi,2)),3,1000);
-% MAC_compare(ss(2).phi(ConnThinWing,:),ss(2).phi(ConnThinWing,:),3,100);
-% MAC_compare(ss(2).phi(ConnThinWing,:),shps_recon1(:,size(ss(1).phi,2)+1:end),3,1000);
-% 
-% % SS2 and SS3
-% shps_recon2 = a21(:,inds2)*a22(inds2,inds2)*a23(:,inds2)';
-% MAC_compare([ss(2).phi(ConnThinWing2,:) ss(3).phi(ConnThickWing,:)],shps_recon2,3,1000);
-% MAC_compare(ss(2).phi(ConnThinWing2,:),ss(2).phi(ConnThinWing2,:),3,1000);
-% MAC_compare(ss(2).phi(ConnThinWing2,:),shps_recon2(:,1:size(ss(2).phi,2)),3,1000);
-% MAC_compare(ss(3).phi(ConnThickWing,:),ss(3).phi(ConnThickWing,:),3,1000);
-% MAC_compare(ss(3).phi(ConnThickWing,:),shps_recon2(:,size(ss(2).phi,2)+1:end),3,1000);
-% 
-% % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+% % % SVD of SS1 & SS2 for decoupling, and SS2 & SS3 for coupling
+% OPEN %{ TO UNCOMMENT -> put a space between % and { to open the section
+%{
+SVD_cutoff = [7 10]; % Cutoff for singular values as a percent of maximum
+[a11,a12,a13]=svd([ss(1).phi(ConnFrame,:) ss(2).phi(ConnThinWing,:)]);
+svd_val1 = (diag(a12)./max(a12(:)))*100; inds1=svd_val1>SVD_cutoff(1);
+[a21,a22,a23]=svd([ss(2).phi(ConnThinWing2,:) ss(3).phi(ConnThickWing,:)]);
+svd_val2 = (diag(a22)./max(a22(:)))*100; inds2=svd_val2>SVD_cutoff(2);
+phip = blkdiag(a11(:,inds1).' , a21(:,inds2).');
+
+% Compare reconstructed mode shapes from the truncated singular vectors to
+% the original mode shape matrices
+shps_recon1 = a11(:,inds1)*a12(inds1,inds1)*a13(:,inds1)'; % SS1 and SS2
+shps_recon2 = a21(:,inds2)*a22(inds2,inds2)*a23(:,inds2)'; % SS2 and SS3
+% The diagonal of the compiled MAC result gives a decent quick look at what
+% modes have changed due to the truncated SVD
+figure(99); clf;
+subplot(2,2,[1 3]); % Plot of Singular Values
+plot(1:length(svd_val1),svd_val1,'.-',1:length(svd_val2),svd_val2,'.-'); 
+yline(SVD_cutoff(1),'color',"#0072BD"); yline(SVD_cutoff(2),'color',"#D95319"); 
+xlabel('Singular Vector Rank'); ylabel('Singular Value %'); grid on; axis tight; 
+legend('SS1 & SS2','SS2 & SS3','Cutoff 1,2','Cutoff 2,3');
+title('Ranking of Singular Values to Determine Cutoff')
+subplot(2,2,2); % Shape Compare 1
+plot(diag(MAC_compare([ss(1).phi(ConnFrame,:) ss(2).phi(ConnThinWing,:)],...
+    shps_recon1)),'.','markersize',15); grid on; axis tight; 
+xlabel('Mode #'); ylabel('MAC Value'); xline(size(ss(1).phi,2)+.5,'color',"#0072BD"); 
+title('Shape Comparison, SS1 & SS2 to SVD Reconstruction')
+subplot(2,2,4); % Shape Compare 2
+plot(diag(MAC_compare([ss(2).phi(ConnThinWing2,:) ss(3).phi(ConnThickWing,:)],...
+    shps_recon2)),'.','markersize',15,'color',"#D95319"); 
+xline(size(ss(2).phi,2)+.5,'color',"#D95319"); 
+xlabel('Mode #'); ylabel('MAC Value'); grid on; axis tight; 
+title('Shape Comparison, SS2 & SS3 to SVD Reconstruction')
+%}
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 % Shouldnt have to change anything below here
@@ -138,8 +151,10 @@ PHI_est = PHI([1:24 235:339],:); % Frame DOFs and Plate+Thick Wing SS DOFs
 
 
 % % % % % % Results % % % % % % 
+% Modal Assurance Criterion to compare truth to CMS result
 MAC_compare(ss(4).phi(:,ss(4).wn/2/pi<max(abs(fn_est))),PHI_est,2,f_num,ss(4).wn( ...
-    ss(4).wn/2/pi<max(abs(fn_est)))/2/pi,fn_est); xlabel('CMS Result'); ylabel('Truth'); 
+    ss(4).wn/2/pi<max(abs(fn_est)))/2/pi,fn_est); xlabel('Truth'); ylabel('CMS Result'); 
+
 
 
 % % % Find what Predicted mode best matches each Truth Mode
@@ -149,6 +164,7 @@ MAC_matrix = MAC_compare(ss(4).phi,PHI_est); % Based on MAC values
 SS_Pred = [ss(4).wn/2/pi fn_est(inds) (fn_est(inds)-ss(4).wn/2/pi)./(ss(4).wn/2/pi)*100 ...
            ss(4).zt*100  zt_est(inds) (zt_est(inds)-ss(4).zt*100)./(ss(4).zt*100)*100 val];
 SS_Pred(val>.5,:); % Show the ones that have a MAC Value > 0.5
+
 
 
 % % % FRF Plot - Mean of all DOF
@@ -180,7 +196,6 @@ semilogy(fs, squeeze(mean(abs(H_CMS),[1 2])),'linewidth',3); hold off;
 xlabel('Frequency (Hz)'); ylabel('FRF Magnitude'); 
 legend('Initial: SS1','Truth: SS4','CMS Result','location','northeast')
 title('FRFs'); grid on; axis tight;
-
 
 
 % % Drivepoint FRFs - Pick a specific DOF
