@@ -168,18 +168,22 @@ H_C = pagemtimes(phi_C,phi_C'.*permute(Hm_C,[2 3 1]));  % Physical FRF matrix
 
 % Q1: Form the Signed Boolean Matrix
 %   We have two constraint equations that join the translation and rotation
-%   DOFs at the right end of Beam A and the left end of Beam B. Fill in the
-%   indicies and values below to form the correct constraint matrix, B.
+%   DOFs at the right end of Beam A and the left end of Beam B
 B = zeros(2,N_A*2+N_B*2); 
-B(1,) = ; % Eq1, Beam A Translation DOF
-B(1,) = ; % Eq1, Beam B Translation DOF
-B(2,) = ; % Eq2, Beam A Rotation DOF
-B(2,) = ; % Eq2, Beam B Rotation DOF
+B(1,N_A*2-1) =  1;
+B(1,N_A*2+1) = -1;
+B(2,N_A*2  ) =  1;
+B(2,N_A*2+2) = -1;
 
 
-% Q2: Generate the Localization Matrix
-%   Remember, L is just the null space of B -> L=null(B)
-L_PHS = ; 
+% Q2: Generate the Localization Matrix as the null space of B
+L_PHS = null(B,'rational'); % Note: By default, null uses singular value 
+% decomposition to robustly compute a null space. In this special case,
+% that process actually introduces some numerical noise/rounding that
+% propagates through and shows up as error in the results. Using the 
+% 'rational' input computes the null space via Reduced Row Echelon Form 
+% operations, which in general is less accurate, but for this its better. 
+% Run this to see the difference: L_PHS = null(B);
 
 
 % Forming the Uncoupled Global EOM M,C,K Matrices
@@ -189,11 +193,9 @@ K_Global_PHS = blkdiag(K_A,K_B);
 
 
 % Q3: Compute the Coupled System Matrices via Primal Assembly
-%   Pre and post multiply the Global Matrices by the localization matrix to
-%   transform the subsystems to a coupled domain
-M_PHS = ;
-C_PHS = ;
-K_PHS = ;
+M_PHS = L_PHS.'*M_Global_PHS*L_PHS;
+C_PHS = L_PHS.'*C_Global_PHS*L_PHS;
+K_PHS = L_PHS.'*K_Global_PHS*L_PHS;
 
 
 % Eigenvalues and Eigenvectors of Assembled System
@@ -245,8 +247,9 @@ title('Mode Shape Results'); axis tight; grid on;
 %% Section 4: Frequency Based Substructuring using Subsystem FRFs
 % LM-FBS (Lagrange Multiplier Frequency Based Substructuring)
 
-% Q3: Generate Noise to add to the FRFs
-H_n_amp = 1e-6; % Noise Amplitude relative to median of FRF 
+% Generate Noise to add to the FRFs
+% H_n_amp = 1e-6; % Noise Amplitude relative to median of FRF 
+H_n_amp = 5e-2; % Noise Amplitude relative to median of FRF 
 % -> 1e-6 is effectively no noise. It significantly effects results at 1e-1
 H_An = H_n_amp*median(abs(H_A),3).*abs(randn(size(H_A))).*exp(1i*(rand(size(H_A))*2*pi));
 H_Bn = H_n_amp*median(abs(H_B),3).*abs(randn(size(H_B))).*exp(1i*(rand(size(H_B))*2*pi));
@@ -257,24 +260,27 @@ figure(2000); semilogy(fs,abs([squeeze(H_A(end-1,end-1,:)) ...
 xlabel('Frequency (Hz)'); legend('Beam A','Beam B','A Noise','B Noise');
 ylabel('Magnitude'); title('Constraint Translation DOF - FRFs and Noise'); 
 
+% figure(998);
+% subplot(2,1,1); semilogy(fs,abs([squeeze(H_A(end-1,end-1,:)) ...
+%     squeeze(H_B(1,1,:)) squeeze(H_An(end-1,end-1,:)) squeeze(H_Bn(1,1,:))]),'linewidth',2);
+% xlabel('Frequency (Hz)'); legend('Beam A','Beam B','A Noise','B Noise'); grid on; axis tight; 
+% ylabel('Magnitude'); title('Constraint Translation DOF - FRFs and Noise'); ylim([5e-5 3]); 
+% subplot(2,1,2); semilogy(fs,abs([squeeze(H_A(end-1,end-1,:))+squeeze(H_An(end-1,end-1,:)) ...
+%     squeeze(H_B(1,1,:))+squeeze(H_Bn(1,1,:))]),'linewidth',2); grid on; axis tight; ylim([5e-5 3]); 
+% xlabel('Frequency (Hz)'); ylabel('Magnitude'); legend('Noisy Beam A','Noisy Beam B');
+
 
 % Q1 - Form the Reference and Response Signed Boolean Matrices
-%   Hint: Since we have complete knowledge of every DOF in both subsystems
-%   (the FRF matrices are square and fully populated), the reference and 
-%   response constraint DOF can be the same should look familiar to those 
-%   used in the physical assembly above.
-B_ref = ; 
-B_res = ; 
-
+B_ref = B; 
+B_res = B; 
+% In this setup, the reference and response constraint DOF are the same
 
 
 % Q2 - Implement the LM-FBS Assembly Equation
-%   Enter in the LM-FBS equation as it is givien in the slides with the
-%   given H_Global matrix and B matrices defined above.
 H_FBS = zeros(N_A*2+N_B*2, N_A*2+N_B*2, length(ws));
 for ii = 1:length(ws)
     H_Global = blkdiag(H_A(:,:,ii)+H_An(:,:,ii),H_B(:,:,ii)+H_Bn(:,:,ii)); % Subsystem FRFs at current frequency value
-    H_FBS(:,:,ii) = ; % LM-FBS
+    H_FBS(:,:,ii) = H_Global-H_Global*B_ref.'*pinv(B_res*H_Global*B_ref.')*B_res*H_Global; % LM-FBS
 end
 H_FBS = H_FBS([1:N_A*2 (N_A*2+3):end],[1:N_A*2 (N_A*2+3):end],:); % Remove repeated DOF
 
@@ -298,9 +304,8 @@ num_A = true(length(fn_A),1);
 num_B = true(length(fn_B),1);
 
 % % Modal Truncation -> Try using modes under 1000Hz
-% num_A = abs(fn_A)<1000; % Keep modes under a certain frequency
-% num_B = abs(fn_B)<1000; % Keep modes under a certain frequency
-
+% num_A = abs(fn_A)<1000;
+% num_B = abs(fn_B)<1000;
 
 % Form Global Modal M,C,K Matrices
 M_Global_CMS = blkdiag(eye(nnz(num_A)), eye(nnz(num_B)));
@@ -310,22 +315,17 @@ Phi_Global_CMS = blkdiag(phi_A(:,num_A),phi_B(:,num_B));
 
 
 % Q1: Convert Physical Constraints to Modal
-%  The CMS constraints are formed from the Physical Assembly Boolean matrix 
-%  and the block diagonal of mode shape matrices defined above
-B_CMS = ;
+B_CMS = B*Phi_Global_CMS;
 
 
-% Q2: Generate CMS Localization Matrix
-%  As this is again Primal Assembly, L is the null space of B
-L_CMS = ;
+% Q2: Generate Localization Matrix
+L_CMS = null(B_CMS);
 
 
 % Q3: Apply Primal Constraints to Modal EOM Matrices 
-%  Transform the uncoupled block diagonal matrices to the coupled system
-%  using the CMS Localization matrix
-M_CMS = ;
-C_CMS = ;
-K_CMS = ;
+M_CMS = L_CMS.'*M_Global_CMS*L_CMS;
+C_CMS = L_CMS.'*C_Global_CMS*L_CMS;
+K_CMS = L_CMS.'*K_Global_CMS*L_CMS;
 
 
 % Compute Modal Parameters of Assembled System 
@@ -357,6 +357,7 @@ semilogy(fs, abs(squeeze(abs(H_CMS(DOF1,DOF2,:)))),'color',"#7E2F8E",'linewidth'
 xlabel('Frequency (Hz)'); ylabel('FRF Magnitude'); grid on; axis tight; hold off;
 legend('Truth','CMS','location','northeast'); title('Beam C FRFs at Tip Translation DOF');
 
+
 % Setup Mode Shapes for plotting
 N_p = 1:3; % modes shapes to plot
 phi_p_C   = phi_C(1:2:end,N_p).*sign(phi_C(end-1,N_p));
@@ -367,7 +368,18 @@ plot(node_C,phi_p_CMS(:,:),'g','linewidth',2); hold off;
 xlabel('Beam Length (m)'); ylabel('Modal Deflection'); axis tight; grid on; 
 title('Mode Shape Results');
 
+
 % MAC Plot of mode shapes
 MAC_compare(phi_C(:,1:min([size(phi_C,2) size(phi_CMS,2) 20])),...
     phi_CMS(:,1:min([size(phi_C,2) size(phi_CMS,2) 20])),2,3002,fn_C,fn_CMS);
 xlabel('Truth'); ylabel('CMS'); 
+
+
+% See what mode shapes were used in truncated forms of A and B 
+figure(3003); clf;
+plot(node_A,phi_A(1:2:end,1:3).*sign(phi_A(end-1,1:3)),'color',"#0072BD",'linewidth',2); hold on;
+plot(node_B,phi_B(1:2:end,1:3).*sign(phi_B(end-1,1:3)),'color',"#D95319",'linewidth',2); hold off;
+xlabel('Beam Length (m)'); ylabel('Modal Deflection'); axis tight;
+title('Mode Shapes of Beam A and Beam B'); grid on; 
+xline(node_A(end),'linewidth',3,'color','k');
+legend('Beam A','','','Beam B')
